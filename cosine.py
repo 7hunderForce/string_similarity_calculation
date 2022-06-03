@@ -1,38 +1,39 @@
-import string
-from sklearn.metrics.pairwise import cosine_similarity
-from sklearn.feature_extraction.text import CountVectorizer
-# Must do initial download
-#import nltk
-#nltk.download('stopwords')
-from nltk.corpus import stopwords
-stop_words = stopwords.words('english')
+import re
+import math
+from collections import Counter
 
-sentenses = [
-    'The river is frozen'
-    ,'The river is blue'
-    ,'The sun is burning'
-    ,'The sun is yellow'
-]
 
-def clean_string(text):
-    text = ''. join([word for word in text if word not in string.punctuation])
-    text = text.lower()
-    text = ' '. join([word for word in text.split() if word not in stop_words])
-    return text
+def get_cosine(vec1, vec2):
+    intersection = set(vec1.keys()) & set(vec2.keys())
+    numerator = sum([vec1[x] * vec2[x] for x in intersection])
 
-cleaned = list(map(clean_string, sentenses))
-vectorizer = CountVectorizer().fit_transform(cleaned)
-vectors = vectorizer.toarray()
-print(vectors)
+    sum1 = sum([vec1[x]**2 for x in vec1.keys()])
+    sum2 = sum([vec2[x]**2 for x in vec2.keys()])
+    denominator = math.sqrt(sum1) * math.sqrt(sum2)
 
-csim = cosine_similarity(vectors)
-print(csim)
+    if not denominator:
+        return 0.0
+    else:
+        return float(numerator) / denominator
 
-def cosine_sim_vectors(vec1, vec2):
-    vec1 = vec1.reshape(1, -1)
-    vec2 = vec2.reshape(1, -1)
-    return cosine_similarity(vec1, vec2)[0][0]
 
-#test
-test = cosine_sim_vectors(vectors[0], vectors[1])
-print(test)
+def text_to_vector(text):
+    word = re.compile(r'\w+')
+    words = word.findall(text)
+    return Counter(words)
+
+
+def get_result(content_a, content_b):
+    text1 = content_a.replace('_',' ').replace('-',' ')
+    text2 = content_b.replace('_',' ').replace('-',' ')
+
+    vector1 = text_to_vector(text1)
+    vector2 = text_to_vector(text2)
+
+    cosine_result = get_cosine(vector1, vector2)
+    return cosine_result
+
+
+print(get_result('Test', 'This is a test'))
+print(get_result('Test_This', 'Test-this_is'))
+print(get_result('World', 'Hello World'))
